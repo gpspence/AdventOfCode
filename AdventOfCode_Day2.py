@@ -1,8 +1,10 @@
 import numpy as np
+from numpy.typing import NDArray
 from aocd import get_data, submit
+from typing import List
 
 
-def clean_data(data: str) -> np.array:
+def clean_data(data: str) -> NDArray:
     """
     Clean the dirty input string.
     Args:
@@ -16,7 +18,7 @@ def clean_data(data: str) -> np.array:
     return [np.array(x).astype(int) for x in data]
 
 
-def test_asc_desc(report: np.array) -> bool:
+def test_asc_desc(report: NDArray) -> bool:
     """
     Check whether a report is all increasing or all decreasing.
     Args:
@@ -32,7 +34,7 @@ def test_asc_desc(report: np.array) -> bool:
         return False
 
 
-def test_step_size(report: np.array) -> bool:
+def test_step_size(report: NDArray) -> bool:
     """
     Check whether the step size within a level is between 1 and 3 (inclusive).
     Args:
@@ -42,25 +44,47 @@ def test_step_size(report: np.array) -> bool:
     """
     report_rshift = np.insert(report, 0, 0)
     report_rshift = report_rshift[:-1]
-    step = np.abs(report - report_rshift)[1:]  # take abs difference, discount first value (no diff)
+    step = np.abs(report - report_rshift)[1:]  # abs difference, discount 1st
     if (np.max(step) <= 3) and (np.min(step) > 0):
         return True
     else:
         return False
 
 
-def run_tests(data: np.array) -> int:
+def run_tests(data: NDArray) -> tuple:
     """
     Run step size and asc/desc tests on the report.
     Args:
         data: puzzle input consisting of many reports.
     Returns:
+        [tuple]: number of safe reports, list of reports to review
+    """
+    safe_reports = 0
+    review_reports = []
+    for report in data:
+        if test_asc_desc(report) & test_step_size(report):
+            safe_reports += 1
+        else:
+            review_reports += [report]
+    return safe_reports, review_reports
+
+
+def review_tests(data: List[NDArray]) -> int:
+    """
+    Rerun tests on the passed data.
+    Args:
+        data: list of reports to rerun.
+    Returns:
         [int]: number of safe reports
     """
     safe_reports = 0
     for report in data:
-        if test_asc_desc(report) & test_step_size(report):
-            safe_reports += 1
+        for idx in range(len(report)):
+            new_report = report.copy()
+            new_report = np.delete(new_report, idx)
+            if test_asc_desc(new_report) & test_step_size(new_report):
+                safe_reports += 1
+                break
     return safe_reports
 
 
@@ -83,6 +107,12 @@ safe_test_reports = run_tests(test_reports)
 # Get the real data and run tests
 data = get_data(day=2, year=2024)
 reports = clean_data(data)
-safe_reports = run_tests(reports)
-submit(safe_reports, part='a', day=2, year=2024)
+safe_reports, review_reports = run_tests(reports)
+# submit(safe_reports, part='a', day=2, year=2024)
 print(safe_reports)
+
+# Part B - Reviewing failed tests
+safe_reports_reviewed = review_tests(review_reports)
+print(safe_reports_reviewed)
+total_safe_reports = safe_reports + safe_reports_reviewed
+submit(total_safe_reports, part='b', day=2, year=2024)
