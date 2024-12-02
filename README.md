@@ -1,2 +1,4 @@
 # AdventOfCode
-Advent of Code Answers for 2024
+My answers for Advent of Code - 2024
+
+Answers written in Python using VSCode.
