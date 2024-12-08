@@ -2,6 +2,7 @@ import numpy as np
 import math
 from numpy.typing import NDArray
 from typing import Tuple, List, AnyStr
+from collections import defaultdict, deque
 from aocd import get_data, submit
 
 
@@ -21,37 +22,45 @@ def clean_data(data: str) -> Tuple[NDArray]:
     return (rules, updates)
 
 
-def rank_nums(rules: List, all_nums: List) -> List:
-    """
-    Take all of the rules and create a dict, where each number has a power score.
-    Return a list ordered by the rules.
-    Args:
-        rules (list): list of rules each a pipe delimited str
-        all_nums (list): list of all nums contained in the rules
-    Returns:
-        [list]: list of numbers, ordered by rules
-    """
-    num_ranking = {num: 0 for num in all_nums}
-
-    for rule in rules:
-        winning_num = int(rule.split('|')[0])
-        num_ranking[winning_num] = num_ranking[winning_num] + 1
-
-    num_ranking = dict(
-        sorted(num_ranking.items(), key=lambda item: item[1], reverse=True)
-    )
-    return list(num_ranking.keys())
-
-
-def filter_ranking(update: List[int], num_ranking: List[int]) -> List:
-    """
-    Filter num_ranking based on which numbers are in the update.
-    Args:
-        update (List): list of updates
-    Returns:
-        [List]: filtered list containing only nums which are in update
-    """
-    return list(filter(lambda x: x in update, num_ranking.copy()))
+def order_numbers(nums, instructions):
+    # Build graph and in-degree counter
+    graph = defaultdict(list)
+    in_degree = defaultdict(int)
+    
+    # Initialize in-degree for all nodes (numbers)
+    for num in nums:
+        in_degree[num] = 0
+    
+    # Add edges to the graph based on instructions
+    for higher, lower in instructions:
+        graph[higher].append(lower)
+        in_degree[lower] += 1
+    
+    # Topological sorting using Kahn's algorithm (BFS)
+    queue = deque()
+    
+    # Add nodes with no incoming edges (in-degree = 0) to the queue
+    for num in nums:
+        if in_degree[num] == 0:
+            queue.append(num)
+  
+    ordered_numbers = []
+   
+    while queue:
+        node = queue.popleft()
+        ordered_numbers.append(node)
+       
+        # Reduce in-degree for neighbors and add to queue if in-degree becomes 0
+        for neighbor in graph[node]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+   
+    # Check if topological sort is possible (i.e., no cycle)
+    if len(ordered_numbers) != len(nums):
+        raise ValueError("There is a cycle in the instructions, so no valid ordering is possible.")
+   
+    return ordered_numbers
 
 
 def main(data: AnyStr) -> int:
