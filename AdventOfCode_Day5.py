@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+import networkx as nx
 from numpy.typing import NDArray
 from typing import Tuple, List, AnyStr
 from collections import defaultdict, deque
@@ -18,49 +20,90 @@ def clean_data(data: str) -> Tuple[NDArray]:
     """
     split_data = data.split("\n\n")
     rules = split_data[0].split('\n')
-    updates = [np.array(x.split(',')).astype(int).tolist() for x in split_data[1].split('\n')]
+    rules = np.array([x.split('|') for x in rules]).astype(int).tolist()
+    updates = [
+        np.array(x.split(','))
+        .astype(int)
+        .tolist() for x in split_data[1].split('\n')
+    ]
     return (rules, updates)
 
 
-def order_numbers(nums, instructions):
+def order_numbers(update: List, rules: List) -> List:
+    """
+    Sort nums using rules - uses Kahn's algorithm for topological sorting:
+    1.
+    2.
+    3.
+    Args:
+        update (list):
+    Returns:
+
+    """
     # Build graph and in-degree counter
-    graph = defaultdict(list)
-    in_degree = defaultdict(int)
-    
+    graph = defaultdict(list)  # collection default list on KeyError
+    in_degree = defaultdict(int)  # collection default int on KeyError
+
     # Initialize in-degree for all nodes (numbers)
-    for num in nums:
-        in_degree[num] = 0
-    
+    for num in update:
+        in_degree[num] = 0  # Number of nodes which feed node, init unknown
+
     # Add edges to the graph based on instructions
-    for higher, lower in instructions:
-        graph[higher].append(lower)
-        in_degree[lower] += 1
-    
+    for higher, lower in rules:
+        # Only consider numbers in the update
+        if higher in in_degree and lower in update:
+            graph[higher].append(lower)  # add outgoing nodes to list in dict
+            in_degree[lower] += 1  # add to lower "in degree" i.e. feeds in
+
     # Topological sorting using Kahn's algorithm (BFS)
-    queue = deque()
-    
+    queue = deque()  # list like container with fast appends and pops at ends
+
     # Add nodes with no incoming edges (in-degree = 0) to the queue
-    for num in nums:
+    for num in update:
         if in_degree[num] == 0:
             queue.append(num)
-  
+
     ordered_numbers = []
-   
+
     while queue:
         node = queue.popleft()
         ordered_numbers.append(node)
-       
-        # Reduce in-degree for neighbors and add to queue if in-degree becomes 0
+
+        # Reduce in-degree for neighbors, add to queue if in-degree becomes 0
         for neighbor in graph[node]:
             in_degree[neighbor] -= 1
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
-   
+
+    # plot_dag(graph)
+
     # Check if topological sort is possible (i.e., no cycle)
-    if len(ordered_numbers) != len(nums):
-        raise ValueError("There is a cycle in the instructions, so no valid ordering is possible.")
-   
+    if len(ordered_numbers) != len(update):
+        raise ValueError("A cycle was found in rules - ordering not possible.")
+
     return ordered_numbers
+
+
+def plot_dag(graph):
+    # Create a directed graph from the dictionary
+    G = nx.DiGraph()
+
+    # Add edges to the graph
+    for node, neighbors in graph.items():
+        for neighbor in neighbors:
+            G.add_edge(node, neighbor)
+
+    # Use networkx util to check if valid DAG
+    if nx.is_directed_acyclic_graph(G):
+        print("The graph is a valid Directed Acyclic Graph (DAG).")
+    else:
+        print("Warning: The graph has a cycle.")
+
+    # Plot the graph
+    pos = nx.spring_layout(G)  # positions for all nodes
+    nx.draw(G, pos, with_labels=True, node_size=300, arrows=True)
+    plt.title("Directed Acyclic Graph (DAG)")
+    plt.show()
 
 
 def main(data: AnyStr) -> int:
@@ -68,16 +111,14 @@ def main(data: AnyStr) -> int:
     Calculate the total middle value of the ordered lists.
     """
     rules, updates = clean_data(data)
-    all_nums = np.array([x.split('|') for x in rules]).flatten().astype(int).tolist()
-    num_ranking = rank_nums(rules, all_nums)
     total = 0
 
     for update in updates:
-        new_ranking = filter_ranking(update, num_ranking)
-        print(f"Try Update: {update}, Ranking: {new_ranking}")
-        if update == new_ranking:
-            print(f"Succeed Update: {update}, Ranking: {new_ranking}")
-            print(f"Adding {update[math.floor(len(update)/2)]}")
+        update_ordered = order_numbers(update, rules)
+        # print(f"Try Update: {update}, Ranking: {update_ordered}")
+        if update == update_ordered:
+            # print(f"Succeed Update: {update}, Ranking: {update_ordered}")
+            # print(f"Adding {update[math.floor(len(update)/2)]}")
             total += update[math.floor(len(update)/2)]
 
     return total
@@ -114,13 +155,12 @@ test_data = """47|53
 61,13,29
 97,13,75,29,47"""
 
-# test_answer = main(data=test_data)
+test_answer = main(data=test_data)
+print(test_answer)
 
 # Use the real data
 data = get_data(day=5, year=2024)
 rules, updates = clean_data(data)
-rules_all_nums = np.array([x.split('|') for x in rules]).flatten().astype(int).tolist()
-# updates_all_nums = [val for sublist in updates for val in sublist]
-# answer = main(data=data)
-# print(answer)
-
+answer = main(data=data)
+print(answer)
+submit(answer, part='a', day=5, year=2024)
