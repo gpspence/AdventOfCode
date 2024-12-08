@@ -105,10 +105,13 @@ test_data = """47|53
 61,13,29
 97,13,75,29,47"""
 
-test_answer = main(data=test_data)
+# test_answer = main(data=test_data)
 
 # Use the real data
 data = get_data(day=5, year=2024)
-answer = main(data=data)
-print(answer)
+rules, updates = clean_data(data)
+rules_all_nums = np.array([x.split('|') for x in rules]).flatten().astype(int).tolist()
+# updates_all_nums = [val for sublist in updates for val in sublist]
+# answer = main(data=data)
+# print(answer)
 
