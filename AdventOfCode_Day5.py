@@ -126,11 +126,11 @@ def main(data: AnyStr) -> int:
             total_a += update[math.floor(len(update)/2)]
         else:
             failed_updates.append(update)
-    
+
     for update in failed_updates:
         failed_update_ordered = order_numbers(update, rules)
         total_b += failed_update_ordered[math.floor(len(update)/2)]
-            
+
     return (total_a, total_b)
 
 
