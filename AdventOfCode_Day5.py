@@ -15,8 +15,8 @@ def clean_data(data: str) -> Tuple[NDArray]:
         data (str): input string, raw puzzle.
     Returns:
         [Tuple[NDArray]]: Tuple of cleaned arrays
-        Rules are pipe delimited strings.
-        Updates are list of lists.
+        Rules are pipe delimited strings e.g. "10|12".
+        Updates are list of lists of ints.
     """
     split_data = data.split("\n\n")
     rules = split_data[0].split('\n')
@@ -31,40 +31,44 @@ def clean_data(data: str) -> Tuple[NDArray]:
 
 def order_numbers(update: List, rules: List) -> List:
     """
-    Sort nums using rules - uses Kahn's algorithm for topological sorting:
-    1.
-    2.
-    3.
+    Topological sorting using Kahn's algorithm (BFS). Sort using rules.
+    0. Build the graph - assign each node a list of destination nodes.
+    Calculate the in-degree for each node (each incoming edge).
+    1. Add all nodes with in-degree 0 to a queue.
+    2. For each outgoing edge from the removed node, decrement
+    3. If the in-degree for any child node becomes 0, add it to the queue
+    If the queue is empty and there are still nodes in graph at end, there is
+    a cycle.
     Args:
-        update (list):
+        update (list): list of numbers to be sorted
+        rules (list): list of rules (pairs of numbers) to use to sort update
     Returns:
-
+        [list]: update sorted by rules
     """
-    # Build graph and in-degree counter
+    # 0. Build graph - initialise in-degree counter and in-degree
     graph = defaultdict(list)  # collection default list on KeyError
     in_degree = defaultdict(int)  # collection default int on KeyError
 
-    # Initialize in-degree for all nodes (numbers)
     for num in update:
-        in_degree[num] = 0  # Number of nodes which feed node, init unknown
+        in_degree[num] = 0  # Number of incoming edges, initially 0
 
-    # Add edges to the graph based on instructions
-    for higher, lower in rules:
-        # Only consider numbers in the update
-        if higher in in_degree and lower in update:
-            graph[higher].append(lower)  # add outgoing nodes to list in dict
-            in_degree[lower] += 1  # add to lower "in degree" i.e. feeds in
+    # 0. Build graph - Add edges to the graph based on rules
+    for left, right in rules:
+        # Only consider numbers in the given update
+        if left in update and right in update:
+            graph[left].append(right)  # outgoing higher nodes to list lower
+            in_degree[right] += 1  # increment incoming edges for lower nodes
 
-    # Topological sorting using Kahn's algorithm (BFS)
+    # 1. Add nodes with no incoming edges (in-degree = 0 to the queue
     queue = deque()  # list like container with fast appends and pops at ends
 
-    # Add nodes with no incoming edges (in-degree = 0) to the queue
     for num in update:
         if in_degree[num] == 0:
             queue.append(num)
 
     ordered_numbers = []
 
+    # 2. and 3. from docstring
     while queue:
         node = queue.popleft()
         ordered_numbers.append(node)
@@ -85,10 +89,8 @@ def order_numbers(update: List, rules: List) -> List:
 
 
 def plot_dag(graph):
-    # Create a directed graph from the dictionary
+    # Create a directed graph and add edges
     G = nx.DiGraph()
-
-    # Add edges to the graph
     for node, neighbors in graph.items():
         for neighbor in neighbors:
             G.add_edge(node, neighbor)
@@ -111,7 +113,9 @@ def main(data: AnyStr) -> int:
     Calculate the total middle value of the ordered lists.
     """
     rules, updates = clean_data(data)
-    total = 0
+    total_a = 0
+    total_b = 0
+    failed_updates = []
 
     for update in updates:
         update_ordered = order_numbers(update, rules)
@@ -119,9 +123,15 @@ def main(data: AnyStr) -> int:
         if update == update_ordered:
             # print(f"Succeed Update: {update}, Ranking: {update_ordered}")
             # print(f"Adding {update[math.floor(len(update)/2)]}")
-            total += update[math.floor(len(update)/2)]
-
-    return total
+            total_a += update[math.floor(len(update)/2)]
+        else:
+            failed_updates.append(update)
+    
+    for update in failed_updates:
+        failed_update_ordered = order_numbers(update, rules)
+        total_b += failed_update_ordered[math.floor(len(update)/2)]
+            
+    return (total_a, total_b)
 
 
 # Part A - Check valid updates, sum the middle number
@@ -161,6 +171,9 @@ print(test_answer)
 # Use the real data
 data = get_data(day=5, year=2024)
 rules, updates = clean_data(data)
-answer = main(data=data)
-print(answer)
-submit(answer, part='a', day=5, year=2024)
+answer_a, answer_b = main(data=data)
+print(answer_a)
+submit(answer_a, part='a', day=5, year=2024)
+
+# Part B - repeat for updates which failed, but reorder
+submit(answer_b, part='b', day=5, year=2024)
