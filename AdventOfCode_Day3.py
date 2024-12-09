@@ -1,6 +1,6 @@
 import re
 from aocd import submit, get_data
-from typing import List, Match, Iterable
+from typing import List, Match
 
 
 def calculate_product(match: Match) -> int:
@@ -32,8 +32,12 @@ def get_new_state(
         [bool]: current state, where to execute mul(x,y) command.
     """
     start_of_mul = match.start()
-    last_do = max([x.end() for x in list_do if x.end() <= start_of_mul], default=-1)
-    last_dont = max([x.end() for x in list_dont if x.end() <= start_of_mul], default=-1)
+    last_do = max(
+        [x.end() for x in list_do if x.end() <= start_of_mul], default=-1
+    )
+    last_dont = max(
+        [x.end() for x in list_dont if x.end() <= start_of_mul], default=-1
+    )
 
     if last_do == -1 and last_dont == -1:  # If both are -1
         return state  # Keep previous state
@@ -75,7 +79,7 @@ def main(
 # Working with test data
 test_str = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"
 main_pattern = r'mul\((\d+),(\d+)\)'  # pattern to match "mul(#,#)"
-test_extracted = list(re.finditer(main_pattern, test_str))  # find all occurences
+test_extracted = list(re.finditer(main_pattern, test_str))
 test_sum_prod = sum(list(map(calculate_product, test_extracted)))
 
 # Get the puzzle
